@@ -1,14 +1,20 @@
 import yt_dlp
 import time
 import os
-import json
+
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+from oauth2client.service_account import ServiceAccountCredentials
 
 FOLDER_ID = os.environ["DRIVE_FOLDER_ID"]
 
+scope = ["https://www.googleapis.com/auth/drive"]
+
 gauth = GoogleAuth()
-gauth.LoadServiceConfigFile("token.json")
+gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name(
+    "token.json", scope
+)
+
 drive = GoogleDrive(gauth)
 
 with open("pending.txt") as f:
@@ -32,8 +38,8 @@ for url in links:
         video = [f for f in os.listdir(".") if f.startswith("video")][0]
 
         file = drive.CreateFile({
-            'title': video,
-            'parents': [{'id': FOLDER_ID}]
+            "title": video,
+            "parents": [{"id": FOLDER_ID}]
         })
 
         file.SetContentFile(video)
@@ -48,5 +54,8 @@ for url in links:
 
     time.sleep(5)
 
-open("completed.txt","a").write("\n".join(completed)+"\n")
-open("failed.txt","a").write("\n".join(failed)+"\n")
+with open("completed.txt","a") as f:
+    f.write("\n".join(completed) + "\n")
+
+with open("failed.txt","a") as f:
+    f.write("\n".join(failed) + "\n")
