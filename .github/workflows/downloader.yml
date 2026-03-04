@@ -3,7 +3,7 @@ name: youtube-drive-downloader
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "* * * * *"
 
 jobs:
 
@@ -16,22 +16,28 @@ jobs:
 
     steps:
 
-    - name: Checkout repo
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
+    - uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
-    - name: Install dependencies
+    - name: install dependencies
       run: |
         pip install -r requirements.txt
         sudo apt update
-        sudo apt install ffmpeg -y
+        sudo apt install ffmpeg nodejs -y
 
-    - name: Create token.json
+    - name: create token
       run: echo '${{ secrets.TOKEN_JSON }}' > token.json
 
-    - name: Run downloader
+    - name: run script
       run: python downloader.py
+
+    - name: commit changes
+      run: |
+        git config --global user.name "bot"
+        git config --global user.email "bot@github.com"
+        git add pending.txt completed.txt failed.txt
+        git commit -m "update queue" || echo "no change"
+        git push
