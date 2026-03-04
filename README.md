@@ -1,2 +1,2 @@
 # yt-bulk-vid-dowanloader
-real
+Useless project
