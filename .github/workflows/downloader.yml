@@ -6,7 +6,6 @@ on:
     - cron: "*/10 * * * *"
 
 jobs:
-
   run:
 
     runs-on: ubuntu-latest
@@ -16,20 +15,22 @@ jobs:
 
     steps:
 
-    - uses: actions/checkout@v4
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v5
+    - name: Setup Python
+      uses: actions/setup-python@v5
       with:
         python-version: "3.11"
 
-    - name: install dependencies
+    - name: Install dependencies
       run: |
-        pip install yt-dlp pydrive2
+        pip install -r requirements.txt
         sudo apt update
         sudo apt install ffmpeg -y
 
-    - name: create token
+    - name: Create token.json
       run: echo '${{ secrets.TOKEN_JSON }}' > token.json
 
-    - name: run script
+    - name: Run downloader
       run: python downloader.py
