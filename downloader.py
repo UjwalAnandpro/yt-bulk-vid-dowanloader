@@ -1,6 +1,7 @@
 import yt_dlp
 import os
 import json
+import time
 
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
@@ -25,58 +26,60 @@ gauth = GoogleAuth()
 gauth.credentials = credentials
 drive = GoogleDrive(gauth)
 
-with open("pending.txt") as f:
-    links = f.read().splitlines()
+while True:
 
-if len(links) == 0:
-    print("no links")
-    exit()
+    with open("pending.txt") as f:
+        links = f.read().splitlines()
 
-url = links[0]
+    if len(links) == 0:
+        print("queue finished")
+        break
 
-try:
+    url = links[0]
 
-    ydl_opts = {
-        "format": "bestvideo[height<=360]+bestaudio/best[height<=360]",
-        "outtmpl": "video.%(ext)s",
-        "extractor_args": {"youtube": {"player_client": ["android"]}},
-        "js_runtimes": ["node"]
-    }
+    try:
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+        ydl_opts = {
+            "format": "bestvideo[height<=360]+bestaudio/best[height<=360]",
+            "outtmpl": "video.%(ext)s",
+            "extractor_args": {"youtube": {"player_client": ["android"]}},
+            "js_runtimes": {"node": {}}
+        }
 
-    video = None
-    for f in os.listdir("."):
-        if f.startswith("video"):
-            video = f
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
 
-    if video is None:
-        raise Exception("video file not created")
+        video = None
 
-    file = drive.CreateFile({
-        "title": video,
-        "parents": [{"id": FOLDER_ID}]
-    })
+        for f in os.listdir("."):
+            if f.startswith("video"):
+                video = f
 
-    file.SetContentFile(video)
-    file.Upload()
+        if video is None:
+            raise Exception("video file not found")
 
-    os.remove(video)
+        file = drive.CreateFile({
+            "title": video,
+            "parents": [{"id": FOLDER_ID}]
+        })
 
-    with open("completed.txt","a") as f:
-        f.write(url+"\n")
+        file.SetContentFile(video)
+        file.Upload()
 
-except Exception as e:
+        os.remove(video)
 
-    reason = str(e)
+        with open("completed.txt","a") as f:
+            f.write(url + "\n")
 
-    with open("failed.txt","a") as f:
-        f.write(url + " | " + reason + "\n")
+    except Exception as e:
 
-# remove processed link
-links.pop(0)
+        with open("failed.txt","a") as f:
+            f.write(url + " | " + str(e) + "\n")
 
-with open("pending.txt","w") as f:
-    for link in links:
-        f.write(link+"\n")
+    links.pop(0)
+
+    with open("pending.txt","w") as f:
+        for link in links:
+            f.write(link + "\n")
+
+    time.sleep(9)
