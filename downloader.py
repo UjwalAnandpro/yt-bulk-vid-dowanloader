@@ -1,5 +1,4 @@
 import yt_dlp
-import time
 import os
 import json
 
@@ -24,57 +23,55 @@ credentials = OAuth2Credentials(
 
 gauth = GoogleAuth()
 gauth.credentials = credentials
-
 drive = GoogleDrive(gauth)
 
 with open("pending.txt") as f:
     links = f.read().splitlines()
 
-completed = []
-failed = []
+if len(links) == 0:
+    print("no links")
+    exit()
 
-for url in links:
+url = links[0]
 
-    try:
+try:
 
-        ydl_opts = {
-            "format": "bestvideo[height<=360]+bestaudio/best[height<=360]",
-            "outtmpl": "video.%(ext)s"
-        }
+    ydl_opts = {
+        "format": "bestvideo[height<=360]+bestaudio/best[height<=360]",
+        "outtmpl": "video.%(ext)s",
+        "extractor_args": {"youtube": {"player_client": ["android"]}},
+        "js_runtimes": ["node"]
+    }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
 
-        video = None
+    video = None
 
-        for file in os.listdir("."):
-            if file.startswith("video"):
-                video = file
+    for f in os.listdir("."):
+        if f.startswith("video"):
+            video = f
 
-        if video is None:
-            raise Exception("video not found")
+    file = drive.CreateFile({
+        "title": video,
+        "parents": [{"id": FOLDER_ID}]
+    })
 
-        gfile = drive.CreateFile({
-            "title": video,
-            "parents": [{"id": FOLDER_ID}]
-        })
+    file.SetContentFile(video)
+    file.Upload()
 
-        gfile.SetContentFile(video)
-        gfile.Upload()
+    os.remove(video)
 
-        os.remove(video)
+    with open("completed.txt","a") as f:
+        f.write(url+"\n")
 
-        completed.append(url)
+except:
 
-    except Exception:
-        failed.append(url)
+    with open("failed.txt","a") as f:
+        f.write(url+"\n")
 
-    time.sleep(5)
+links.pop(0)
 
-with open("completed.txt","a") as f:
-    for link in completed:
-        f.write(link + "\n")
-
-with open("failed.txt","a") as f:
-    for link in failed:
-        f.write(link + "\n")
+with open("pending.txt","w") as f:
+    for link in links:
+        f.write(link+"\n")
