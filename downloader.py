@@ -47,10 +47,12 @@ try:
         ydl.download([url])
 
     video = None
-
     for f in os.listdir("."):
         if f.startswith("video"):
             video = f
+
+    if video is None:
+        raise Exception("video file not created")
 
     file = drive.CreateFile({
         "title": video,
@@ -65,11 +67,14 @@ try:
     with open("completed.txt","a") as f:
         f.write(url+"\n")
 
-except:
+except Exception as e:
+
+    reason = str(e)
 
     with open("failed.txt","a") as f:
-        f.write(url+"\n")
+        f.write(url + " | " + reason + "\n")
 
+# remove processed link
 links.pop(0)
 
 with open("pending.txt","w") as f:
